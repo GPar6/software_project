@@ -1,6 +1,8 @@
 const canvas = document.querySelector("#gameCanvas");
 const ctx = canvas.getContext("2d");
 const scoreEl = document.querySelector("#score");
+const levelEl = document.querySelector("#level");
+const bestScoreEl = document.querySelector("#bestScore");
 const comboEl = document.querySelector("#combo");
 const statusEl = document.querySelector("#status");
 const startOverlay = document.querySelector("#startOverlay");
@@ -8,7 +10,9 @@ const resultOverlay = document.querySelector("#resultOverlay");
 const resultEyebrow = document.querySelector("#resultEyebrow");
 const resultTitle = document.querySelector("#resultTitle");
 const resultText = document.querySelector("#resultText");
+const nextLevelButton = document.querySelector("#nextLevelButton");
 const nextPreview = document.querySelector("#nextPreview");
+const pauseOverlay = document.querySelector("#pauseOverlay");
 
 const COLORS = {
   red: "#ff5f70", blue: "#58a6ff", yellow: "#ffd84e", green: "#5ee28a", purple: "#bd7aff"
@@ -19,28 +23,41 @@ const PATH_Y = 255;
 const START_X = 115;
 const END_X = 980;
 const SHOOTER = { x: 550, y: 520 };
+const LEVELS = [
+  { id: "classic-01", speed: 8, patterns: ["red", "blue", "yellow"], balls: ["red", "blue", "blue", "yellow", "red", "yellow"] },
+  { id: "classic-02", speed: 14, patterns: ["red", "blue", "yellow", "green"], balls: ["green", "red", "yellow", "blue", "blue", "green", "red", "yellow"] }
+];
+const BEST_SCORE_KEY = "hot-zuma-best-score";
+let levelIndex = 0;
 
 let state;
 let lastTime = 0;
 let rafId = 0;
 
-function randomPattern() { return PATTERNS[Math.floor(Math.random() * PATTERNS.length)]; }
+function randomPattern(pool = PATTERNS) { return pool[Math.floor(Math.random() * pool.length)]; }
 function makeBall(pattern) { return { pattern, x: 0 }; }
 
 function resetGame() {
+  const level = LEVELS[levelIndex];
   state = {
     status: "READY",
     score: 0,
     combo: 1,
     chainOffset: 0,
-    chainSpeed: 20,
-    balls: ["red", "blue", "blue", "green", "yellow", "purple", "purple", "red", "green", "yellow"].map(makeBall),
+    chainSpeed: level.speed,
+    levelId: level.id,
+    patterns: level.patterns,
+    balls: level.balls.map(makeBall),
     projectile: null,
     aimAngle: -Math.PI / 2,
-    currentPattern: randomPattern(),
-    nextPattern: randomPattern(),
+    currentPattern: randomPattern(level.patterns),
+    nextPattern: randomPattern(level.patterns),
     lastMatchAt: 0
   };
+  state.balls.forEach((ball, index) => { ball.x = index * BALL_RADIUS * 2.05; });
+  levelEl.textContent = String(levelIndex + 1).padStart(2, "0");
+  bestScoreEl.textContent = localStorage.getItem(BEST_SCORE_KEY) || "0";
+  pauseOverlay.classList.add("hidden");
   updateHud();
   draw();
 }
@@ -50,6 +67,7 @@ function startGame() {
   state.status = "PLAYING";
   startOverlay.classList.add("hidden");
   resultOverlay.classList.add("hidden");
+  pauseOverlay.classList.add("hidden");
   statusEl.textContent = "进行中";
   lastTime = performance.now();
   cancelAnimationFrame(rafId);
@@ -65,9 +83,14 @@ function loop(now) {
 }
 
 function update(delta) {
+  if (state.lastMatchAt && performance.now() - state.lastMatchAt > 3000 && state.combo !== 1) {
+    state.combo = 1;
+    updateHud();
+  }
   state.chainOffset += state.chainSpeed * delta;
   if (state.chainOffset > 330) state.chainOffset = 330;
-  if (state.balls.length && getBallX(state.balls[0]) < 92) finish(false);
+  const lastBall = state.balls[state.balls.length - 1];
+  if (lastBall && getBallX(lastBall) > END_X) finish(false);
 
   const shot = state.projectile;
   if (!shot) return;
@@ -118,7 +141,13 @@ function resolveMatches(index) {
   state.combo = Math.min(5, state.combo + 1);
   state.lastMatchAt = performance.now();
   for (let i = 0; i < state.balls.length; i++) state.balls[i].x = i * BALL_RADIUS * 2.05;
-  if (state.balls.length === 0) finish(true);
+  if (state.balls.length === 0) {
+    finish(true);
+    return;
+  }
+  // 消除后，原来分隔两段的球可能连成新的三连，继续判定连锁。
+  const nextIndex = Math.min(start, state.balls.length - 1);
+  if (state.balls[nextIndex]) resolveMatches(nextIndex);
   updateHud();
 }
 
@@ -126,17 +155,23 @@ function shoot() {
   if (state.status !== "PLAYING" || state.projectile) return;
   state.projectile = { x: SHOOTER.x, y: SHOOTER.y, angle: state.aimAngle, speed: 680, pattern: state.currentPattern };
   state.currentPattern = state.nextPattern;
-  state.nextPattern = randomPattern();
+  state.nextPattern = randomPattern(state.patterns);
   updatePreview();
 }
 
 function finish(success) {
   if (state.status !== "PLAYING") return;
   state.status = success ? "SUCCESS" : "FAILED";
+  const best = Number(localStorage.getItem(BEST_SCORE_KEY) || 0);
+  if (state.score > best) localStorage.setItem(BEST_SCORE_KEY, String(state.score));
   statusEl.textContent = success ? "通关" : "失败";
   resultEyebrow.textContent = success ? "LEVEL COMPLETE" : "GAME OVER";
   resultTitle.textContent = success ? "漂亮！全部消除" : "球链抵达终点";
   resultText.textContent = `本局得分：${state.score}`;
+  const hasNextLevel = success && levelIndex < LEVELS.length - 1;
+  nextLevelButton.classList.toggle("hidden", !hasNextLevel);
+  nextLevelButton.textContent = `进入第 ${levelIndex + 2} 关`;
+  document.querySelector("#restartButton").textContent = hasNextLevel ? "重玩本关" : "重新开始";
   resultOverlay.classList.remove("hidden");
   updateHud();
 }
@@ -144,6 +179,7 @@ function finish(success) {
 function updateHud() {
   if (!state) return;
   scoreEl.textContent = state.score;
+  bestScoreEl.textContent = localStorage.getItem(BEST_SCORE_KEY) || "0";
   comboEl.textContent = `×${state.combo}`;
   updatePreview();
 }
@@ -178,7 +214,7 @@ function drawTrack() {
   ctx.beginPath(); ctx.moveTo(70, PATH_Y); ctx.lineTo(1030, PATH_Y); ctx.stroke();
   ctx.strokeStyle = "#555b7d"; ctx.lineWidth = 4;
   ctx.beginPath(); ctx.moveTo(70, PATH_Y); ctx.lineTo(1030, PATH_Y); ctx.stroke();
-  ctx.fillStyle = "#ff6070"; ctx.beginPath(); ctx.arc(70, PATH_Y, 11, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ff6070"; ctx.beginPath(); ctx.arc(END_X, PATH_Y, 11, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 
@@ -216,10 +252,26 @@ canvas.addEventListener("pointermove", event => {
 canvas.addEventListener("pointerdown", shoot);
 document.querySelector("#startButton").addEventListener("click", startGame);
 document.querySelector("#restartButton").addEventListener("click", startGame);
+nextLevelButton.addEventListener("click", () => {
+  if (levelIndex >= LEVELS.length - 1) return;
+  levelIndex += 1;
+  startGame();
+});
 document.querySelector("#pauseButton").addEventListener("click", () => {
   if (!state || state.status === "READY" || state.status === "SUCCESS" || state.status === "FAILED") return;
   state.status = state.status === "PAUSED" ? "PLAYING" : "PAUSED";
   statusEl.textContent = state.status === "PAUSED" ? "已暂停" : "进行中";
+  pauseOverlay.classList.toggle("hidden", state.status !== "PAUSED");
+});
+document.querySelector("#resumeButton").addEventListener("click", () => {
+  if (!state || state.status !== "PAUSED") return;
+  state.status = "PLAYING";
+  statusEl.textContent = "进行中";
+  pauseOverlay.classList.add("hidden");
+});
+document.addEventListener("keydown", event => {
+  if (event.code === "Space") { event.preventDefault(); shoot(); }
+  if (event.key.toLowerCase() === "p") document.querySelector("#pauseButton").click();
 });
 
 resetGame();

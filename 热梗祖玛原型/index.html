@@ -14,7 +14,9 @@
         <h1>热梗祖玛</h1>
       </div>
       <div class="hud">
+        <div><span>关卡</span><strong id="level">01</strong></div>
         <div><span>分数</span><strong id="score">0</strong></div>
+        <div><span>最高分</span><strong id="bestScore">0</strong></div>
         <div><span>连击</span><strong id="combo">×1</strong></div>
         <div><span>状态</span><strong id="status">准备中</strong></div>
       </div>
@@ -25,14 +27,21 @@
       <div id="startOverlay" class="overlay">
         <p class="eyebrow">CLASSIC MODE / LEVEL 01</p>
         <h2>准备好发射了吗？</h2>
-        <p>移动鼠标瞄准，点击发射。三个相同图案连在一起即可消除。</p>
+        <p>移动鼠标瞄准，点击发射。三个相同图案连在一起即可消除。第一关为新手难度，先熟悉瞄准和连锁。</p>
         <button id="startButton">开始游戏</button>
       </div>
       <div id="resultOverlay" class="overlay hidden">
         <p id="resultEyebrow" class="eyebrow">GAME OVER</p>
         <h2 id="resultTitle">球链抵达终点</h2>
         <p id="resultText">本局得分：0</p>
+        <button id="nextLevelButton" class="hidden">进入下一关</button>
         <button id="restartButton">重新开始</button>
+      </div>
+      <div id="pauseOverlay" class="overlay hidden">
+        <p class="eyebrow">PAUSED</p>
+        <h2>游戏已暂停</h2>
+        <p>球链和计时已停止，点击继续回到游戏。</p>
+        <button id="resumeButton">继续游戏</button>
       </div>
     </section>
 
