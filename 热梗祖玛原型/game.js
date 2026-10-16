@@ -6,6 +6,8 @@ const bestScoreEl = document.querySelector("#bestScore");
 const comboEl = document.querySelector("#combo");
 const statusEl = document.querySelector("#status");
 const startOverlay = document.querySelector("#startOverlay");
+const levelOverlay = document.querySelector("#levelOverlay");
+const levelGrid = document.querySelector("#levelGrid");
 const resultOverlay = document.querySelector("#resultOverlay");
 const resultEyebrow = document.querySelector("#resultEyebrow");
 const resultTitle = document.querySelector("#resultTitle");
@@ -28,11 +30,28 @@ const LEVELS = [
   { id: "classic-02", speed: 14, patterns: ["red", "blue", "yellow", "green"], balls: ["green", "red", "yellow", "blue", "blue", "green", "red", "yellow"] }
 ];
 const BEST_SCORE_KEY = "hot-zuma-best-score";
+const PROGRESS_KEY = "hot-zuma-progress";
 let levelIndex = 0;
 
 let state;
 let lastTime = 0;
 let rafId = 0;
+
+function loadProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+    return {
+      unlockedLevel: Math.max(1, Math.min(LEVELS.length, saved.unlockedLevel || 1)),
+      bestScores: saved.bestScores || {}
+    };
+  } catch {
+    return { unlockedLevel: 1, bestScores: {} };
+  }
+}
+
+function saveProgress(progress) {
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+}
 
 function randomPattern(pool = PATTERNS) { return pool[Math.floor(Math.random() * pool.length)]; }
 function makeBall(pattern) { return { pattern, x: 0 }; }
@@ -56,7 +75,8 @@ function resetGame() {
   };
   state.balls.forEach((ball, index) => { ball.x = index * BALL_RADIUS * 2.05; });
   levelEl.textContent = String(levelIndex + 1).padStart(2, "0");
-  bestScoreEl.textContent = localStorage.getItem(BEST_SCORE_KEY) || "0";
+  const progress = loadProgress();
+  bestScoreEl.textContent = progress.bestScores[level.id] || "0";
   pauseOverlay.classList.add("hidden");
   updateHud();
   draw();
@@ -162,8 +182,13 @@ function shoot() {
 function finish(success) {
   if (state.status !== "PLAYING") return;
   state.status = success ? "SUCCESS" : "FAILED";
-  const best = Number(localStorage.getItem(BEST_SCORE_KEY) || 0);
-  if (state.score > best) localStorage.setItem(BEST_SCORE_KEY, String(state.score));
+  const progress = loadProgress();
+  const oldBest = Number(progress.bestScores[state.levelId] || 0);
+  if (state.score > oldBest) progress.bestScores[state.levelId] = state.score;
+  if (success && levelIndex + 1 < LEVELS.length) {
+    progress.unlockedLevel = Math.max(progress.unlockedLevel, levelIndex + 2);
+  }
+  saveProgress(progress);
   statusEl.textContent = success ? "通关" : "失败";
   resultEyebrow.textContent = success ? "LEVEL COMPLETE" : "GAME OVER";
   resultTitle.textContent = success ? "漂亮！全部消除" : "球链抵达终点";
@@ -179,7 +204,7 @@ function finish(success) {
 function updateHud() {
   if (!state) return;
   scoreEl.textContent = state.score;
-  bestScoreEl.textContent = localStorage.getItem(BEST_SCORE_KEY) || "0";
+  bestScoreEl.textContent = loadProgress().bestScores[state.levelId] || "0";
   comboEl.textContent = `×${state.combo}`;
   updatePreview();
 }
@@ -252,11 +277,38 @@ canvas.addEventListener("pointermove", event => {
 canvas.addEventListener("pointerdown", shoot);
 document.querySelector("#startButton").addEventListener("click", startGame);
 document.querySelector("#restartButton").addEventListener("click", startGame);
+document.querySelector("#selectLevelButton").addEventListener("click", () => {
+  startOverlay.classList.add("hidden");
+  levelOverlay.classList.remove("hidden");
+  renderLevelSelect();
+});
+document.querySelector("#backToStartButton").addEventListener("click", () => {
+  levelOverlay.classList.add("hidden");
+  startOverlay.classList.remove("hidden");
+});
 nextLevelButton.addEventListener("click", () => {
   if (levelIndex >= LEVELS.length - 1) return;
   levelIndex += 1;
   startGame();
 });
+
+function renderLevelSelect() {
+  const progress = loadProgress();
+  levelGrid.innerHTML = "";
+  LEVELS.forEach((level, index) => {
+    const unlocked = index < progress.unlockedLevel;
+    const button = document.createElement("button");
+    button.className = `level-button${unlocked ? "" : " locked"}`;
+    button.disabled = !unlocked;
+    button.innerHTML = `<strong>第 ${index + 1} 关${unlocked ? "" : " 🔒"}</strong><small>最高分：${progress.bestScores[level.id] || 0} · 速度：${level.speed}</small>`;
+    if (unlocked) button.addEventListener("click", () => {
+      levelIndex = index;
+      levelOverlay.classList.add("hidden");
+      startGame();
+    });
+    levelGrid.appendChild(button);
+  });
+}
 document.querySelector("#pauseButton").addEventListener("click", () => {
   if (!state || state.status === "READY" || state.status === "SUCCESS" || state.status === "FAILED") return;
   state.status = state.status === "PAUSED" ? "PLAYING" : "PAUSED";

@@ -29,6 +29,14 @@
         <h2>准备好发射了吗？</h2>
         <p>移动鼠标瞄准，点击发射。三个相同图案连在一起即可消除。第一关为新手难度，先熟悉瞄准和连锁。</p>
         <button id="startButton">开始游戏</button>
+        <button id="selectLevelButton" class="secondary-button">选择关卡</button>
+      </div>
+      <div id="levelOverlay" class="overlay hidden">
+        <p class="eyebrow">LEVEL SELECT</p>
+        <h2>选择关卡</h2>
+        <p>已通关的关卡可以重复挑战，最高分会自动保存。</p>
+        <div id="levelGrid" class="level-grid"></div>
+        <button id="backToStartButton" class="secondary-button">返回</button>
       </div>
       <div id="resultOverlay" class="overlay hidden">
         <p id="resultEyebrow" class="eyebrow">GAME OVER</p>

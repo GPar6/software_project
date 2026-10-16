@@ -36,6 +36,11 @@ canvas { display: block; width: 100%; height: auto; background: linear-gradient(
 button { border: 0; border-radius: 999px; padding: 13px 28px; background: var(--accent); color: #28200b; font: inherit; font-weight: 800; cursor: pointer; transition: transform .15s, filter .15s; }
 button:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .secondary-button { padding: 10px 20px; background: var(--panel-light); color: var(--text); }
+.overlay > .secondary-button { margin-top: 10px; }
+.level-grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 12px; width: min(420px, 90%); margin: 12px 0 8px; }
+.level-button { display: grid; gap: 4px; padding: 15px 18px; border: 1px solid #4b5070; border-radius: 14px; background: #25283a; color: var(--text); text-align: left; }
+.level-button small { color: var(--muted); font-weight: 400; }
+.level-button.locked { cursor: not-allowed; opacity: .45; }
 
 .bottom-panel { display: flex; align-items: center; gap: 28px; margin-top: 16px; padding: 15px 20px; border: 1px solid #30344b; border-radius: 18px; background: #181a27; }
 .next-ball { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; }
