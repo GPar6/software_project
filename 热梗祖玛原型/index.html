@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>热梗祖玛 · 原型</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">PROTOTYPE / MVP-0</p>
+        <h1>热梗祖玛</h1>
+      </div>
+      <div class="hud">
+        <div><span>分数</span><strong id="score">0</strong></div>
+        <div><span>连击</span><strong id="combo">×1</strong></div>
+        <div><span>状态</span><strong id="status">准备中</strong></div>
+      </div>
+    </header>
+
+    <section class="game-card">
+      <canvas id="gameCanvas" width="1100" height="650" aria-label="热梗祖玛游戏画布"></canvas>
+      <div id="startOverlay" class="overlay">
+        <p class="eyebrow">CLASSIC MODE / LEVEL 01</p>
+        <h2>准备好发射了吗？</h2>
+        <p>移动鼠标瞄准，点击发射。三个相同图案连在一起即可消除。</p>
+        <button id="startButton">开始游戏</button>
+      </div>
+      <div id="resultOverlay" class="overlay hidden">
+        <p id="resultEyebrow" class="eyebrow">GAME OVER</p>
+        <h2 id="resultTitle">球链抵达终点</h2>
+        <p id="resultText">本局得分：0</p>
+        <button id="restartButton">重新开始</button>
+      </div>
+    </section>
+
+    <section class="bottom-panel">
+      <div class="next-ball">
+        <span>下一球</span>
+        <div id="nextPreview" class="ball-preview red"></div>
+      </div>
+      <div class="legend">
+        <span><i class="dot red"></i>红</span>
+        <span><i class="dot blue"></i>蓝</span>
+        <span><i class="dot yellow"></i>黄</span>
+        <span><i class="dot green"></i>绿</span>
+        <span><i class="dot purple"></i>紫</span>
+      </div>
+      <button id="pauseButton" class="secondary-button">暂停</button>
+    </section>
+    <p class="hint">原型版：当前使用彩色圆球占位，后续可替换为主题贴图。</p>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
